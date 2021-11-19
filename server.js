@@ -1,6 +1,6 @@
 const http = require('http');
 const fs = require('fs');
-const path = require('path');
+//const path = require('path');
 const { handleFormSubmission, JSONtoHTML } = require('./utils');
 require('dotenv').config();
 
@@ -14,19 +14,12 @@ http.createServer((req, res) => {
         filePath = filePath.slice(0, 2) + 'views/' + filePath.slice(2)
     }
 
-    const extname = String(path.extname(filePath)).toLowerCase();
+    console.log(req.url)
+    if (req.url === '/') {
+        filePath = './home.html'
+    }
 
-    const mimeTypes = {
-        '.html': 'text/html',
-        '.js': 'text/javascript',
-        '.css': 'text/css',
-        '.json': 'application/json',
-    };
-    const contentType = mimeTypes[extname] || 'application/octet-stream';
-
-    //console.log(filePath)
-
-    fs.readFile((filePath), (error, content) => {
+    fs.readFile(filePath, (error, content) => {
         if (error) {
             if (error.code == 'ENOENT') {
                 res.writeHead(404, { 'Content-Type': 'text/html' });
@@ -37,20 +30,54 @@ http.createServer((req, res) => {
                 res.end(`Erreur interne: ${error.code}`);
             }
         } else {
-            res.writeHead(200, { 'Content-Type': contentType });
+            if (req.method === "POST") {
+                req.on('data', (data) => {
+                    handleFormSubmission(data);
+                })
+                res.writeHead(302, {
+                    'Location': '/students.html'
+                });
+                res.end(content)
+            }
+            else {
+                if (req.url === "/students.html") {
+                    res.writeHead(200, { "Content-Type": "text/html" });
+                    res.end(`
+                        <meta charset="UTF-8" />
+                        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                        <link rel="stylesheet" type="text/css" href="../assets/css/bootstrap.min.css" />
+                        <title>Étudiants</title>
 
-            res.end(content, 'utf-8');
+                        <div class="container">
+                        <div class="row py-3">
+                            <div class="col">
+                            <a href="home.html" class="me-2 btn btn-secondary"> Accueil </a>
+                            <a href="students.html" class="btn btn-secondary"> Étudiants </a>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                            <h1>Liste d'étudiants</h1>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <ul class="col" id="studentsList">
+                                ${JSONtoHTML('./students.json')}
+                            </ul>
+                        </div>
+                        </div>
+                    `)
+                }
+                else {
+                    res.end(content, 'utf-8');
+                }
+            }
         }
-        // if (filePath === './views/students.html') {
-            
-        // }
     });
 
-    req.on('data', (data) => {
-        handleFormSubmission(data, res)
-        
-        //JSONtoHTML('./students.json', '#studentsList')
-    });
+
+
 
 }).listen(port);
 

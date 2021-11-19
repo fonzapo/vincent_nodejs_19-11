@@ -1,5 +1,7 @@
 const fs = require('fs');
 const { JSDOM } = require('jsdom');
+const { parse } = require('querystring');
+const { format } = require('date-fns')
 
 module.exports.handleFormSubmission = (data, res) => {
     const parsedData = decodeURIComponent(data)
@@ -20,40 +22,24 @@ module.exports.handleFormSubmission = (data, res) => {
         });
 
         stringifiedJSON = JSON.stringify(parsedJSONfile);
+
         fs.writeFile('./students.json', stringifiedJSON, 'utf-8', (err) => {
             if (err) throw err;
             console.log('done')
         })
-        //data = ''
-        //res.render('/students.html')
-        //res.end(data)
+
     })
 }
 
-module.exports.JSONtoHTML = (rawFile, divId) => {
-    fs.readFile(rawFile, 'utf-8', (err, jsondata) => {
-        const parsedJSONfile = JSON.parse(jsondata);
+module.exports.JSONtoHTML = (rawFile) => {
+    let students = '';
+    const rawData = fs.readFileSync(rawFile);
+    const parsedData = JSON.parse(rawData)
 
-        // JSDOM.fromFile('./views/students.html', { contentType: 'text/html' })
-        //     .then((dom) => {
-        //         const parentDiv = dom.window.document.querySelector(divId);
-        //         parentDiv.innerHTML = ''
-
-        //         for (line of parsedJSONfile) {
-        //             parentDiv.insertAdjacentHTML(
-        //                 'afterbegin',
-        //                 `<li>${line.name} ${line.birth}</li>`
-        //             )
-        //         }
-        //         const newDom = dom.window.document.head.innerHTML + dom.window.document.body.innerHTML;
-
-        //         fs.writeFile('./views/students.html', newDom, 'utf-8', (err) => {
-        //             if (err) throw err;
-        //             console.log('done')
-        //         })
-        //     }).catch((err) => {
-        //         throw err;
-        //     })
-    })
-    //console.log(rawFile)
+    for (student of parsedData) {
+        const { name, birth } = student;
+        const formattedDate = format(new Date(birth), 'dd-MM-yyyy');
+        students += `<li>${name} ${formattedDate}</li>`
+    }
+    return students;
 }
